@@ -8,6 +8,7 @@ function Fractal() {
 	// set up the view
 	this.init = function() {
 		this.gfx = new GFXEngine();
+		this.gfx.init();
 		this.gfx.drawCircles();
 	};
 };
