@@ -11,28 +11,23 @@ function GFXEngine() {
 	this.image_data = this.image.data;
 	
 	this.drawCircles = function() {
-		console.log('working!');
-		for(var x=0; x<200; x++) {
-			for(var y=0; y<200; y++) {
+		console.log(this.width, this.height);
+		for(var x=0; x<this.width; x++) {
+			for(var y=0; y<this.height; y++) {
 				// plot a pixel at (x,y)
-				var index = (y * this.width + x) * 4;
 				var value = x * y & 0xff;
-				this.image_data[index++]   = value;    // red
-				this.image_data[index++] = value;    // green
-				this.image_data[index++] = value;    // blue
-				this.image_data[index] = 255;      // alpha
+				this.plotPixel(x, y, value);
 			}
 		}
 		this.canvas.putImageData(this.image, 0, 0);
-		console.log('finished!');
 	};
 	
-	this.plotPixel = function(x, y, r, g, b) {
+	this.plotPixel = function(x, y, value) {
 		var index = (y * this.width + x) * 4;
-		this.image_data[0] = r;
-		this.image_data[1] = g;
-		this.image_data[2] = b;
-		this.image_data[3] = 255;
+		this.image_data[index++] = value;
+		this.image_data[index++] = value;
+		this.image_data[index++] = value;
+		this.image_data[index] = 255;
 	};
 };
 
