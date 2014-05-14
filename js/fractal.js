@@ -9,7 +9,7 @@ function Fractal() {
 	this.init = function() {
 		this.gfx = new GFXEngine();
 		this.gfx.init();
-		this.gfx.drawMandelbrot(-2.0, 1.0, 1.0, -1.0);
+		this.gfx.drawMandelbrot();
 	};
 };
 
