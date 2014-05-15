@@ -7,8 +7,33 @@ html, body {
 	display: block;
 }
 
-gfx {
-	position: absolute;
-	left: 0px; top: 0px;
+.gfx {
+	position: relative;
+	left: 0px;
+}
+
+.navbar {
+	list-style: none;
+	padding-left: 0;
+	margin-left: 0;
+	float: right;
+	width: 100%;
+	border-bottom: 1px dashed #000;
+}
+
+.navbar li {
+	float: left;
+}
+
+.navbar a {
+	display: block;
+	width: 12em;
+	border: 1px dashed #000;
+	border-bottom: none;
+	padding: 5px;
+	text-align: center;
+	background-color: #EAEAEA;
+	text-decoration: none;
+	color: #333;
 }
 

@@ -1,10 +1,49 @@
 "use strict";
 
+function Mouse(canvas) {
+	this.xpos = 0;
+	this.ypos = 0;
+	this.width = parseInt(canvas.width / 10);
+	this.height = parseInt(canvas.height / 10);
+	
+	this.draw = function(context) {
+		context.fillStype = 'black';
+		context.fillRect(this.xpos, this.ypos, this.width, this.height);
+	};
+}
+
 // code to handle all drawing to screen and animations
 function GFXEngine() {
+	// class to handle all website and screen interactions
+	this.init = function() {
+		this.canvas = document.getElementById('canvas');
+		this.ctx = this.canvas.getContext('2d');
+		// block right click and remove mouse
+		this.canvas.oncontextmenu = function(e) { e.preventDefault(); return(false); }
+		//this.canvas.style.cursor = 'none';
+		this.canvas.addEventListener('onclick', this.mouseMove.bind(this), false);
+		this.resizeCanvas();
+		window.addEventListener('resize', this.resizeCanvas, false);		
+		this.mouse = new Mouse(this.canvas);
+		// set the clock
+		this.interval_id = setInterval(this.mainLoop.bind(this), 2000);
+	};
+
+	this.mainLoop = function(event) {
+		// draw the fractal
+		// draw the mouse
+		this.mouse.draw(this.context);
+	};
+
+	this.mouseMove = function(event) {
+		var canvas_pos = this.canvas.getBoundingClientRect();
+		var xpos = event.clientX - canvas_pos.left;
+		var ypos = event.clientY - canvas_pos.top;
+	};
+
 	this.resizeCanvas = function() {
 		this.width = window.innerWidth;
-		this.height = window.innerHeight;
+		this.height = window.innerHeight
 		this.canvas.width = this.width;
 		this.canvas.height = this.height;
 		if(this.context) {
@@ -14,13 +53,6 @@ function GFXEngine() {
 		this.image = this.context.getImageData(0, 0, this.width, this.height);
 		this.image_data = this.image.data;
 		this.colour_band = getColourBanding();
-	};
-
-	// class to handle all website and screen interactions
-	this.init = function() {
-		this.canvas = document.getElementById('canvas');
-		this.resizeCanvas();
-		window.addEventListener('resize', this.resizeCanvas, false);
 	};
 	
 	this.updateScreen = function() {
@@ -33,7 +65,6 @@ function GFXEngine() {
 		var xscale = Math.abs((x1 - x0) / this.width);
 		var yscale = Math.abs((y1 - y0) / this.height);
 		if(xscale < yscale) {
-			console.log("xscale small");
 			// xscale is smaller, so has more room. True scale is now y
 			scale = ((y1 - y0) / this.height) * -1;
 			// resize x
@@ -42,7 +73,6 @@ function GFXEngine() {
 			x1 += extra_size;
 		}
 		else {
-			console.log("yscale small");
 			// yscale is smaller, so has more room. True scale is now x
 			scale = (x1 - x0) / this.width;
 			// resize y
