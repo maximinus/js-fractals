@@ -1,5 +1,12 @@
 "use strict";
 
+function Rect(x0, x1, y0, y1) {
+	this.x0 = x0;
+	this.x1 = x1;
+	this.y0 = y0;
+	this.y1 = y1;
+}
+
 function Mouse(canvas) {
 	this.xpos = 0;
 	this.ypos = 0;
@@ -9,6 +16,8 @@ function Mouse(canvas) {
 	this.height = parseInt(canvas.height / 10);
 	this.view_invalid = false;
 	this.canvas_buffer = document.createElement('canvas');
+	this.real_x = 0;
+	this.real_y = 0;
 	
 	this.draw = function(canvas, context) {
 		if(this.view_invalid == false) {
@@ -23,6 +32,7 @@ function Mouse(canvas) {
 	this.drawRectangle = function(context) {
 		context.lineWidth = 1;
 		context.strokeStyle = 'black';
+		// stroke 1 size smaller than the rectangle
 		context.strokeRect(this.xpos + 1, this.ypos + 1, this.width - 2, this.height - 2);
 	};
 
@@ -34,14 +44,14 @@ function Mouse(canvas) {
 		// canvas does not handle negative xpos / ypos, so clip if needed
 		// 4 chances: x+y and -, x or y is -, or both positive
 		if((this.xpos < 0) && (this.ypos < 0)) {
-			ctx.drawImage(canvas, 0, 0, this.width + this.xpos, this.height + this.xpos, 0, 0, 
-						  this.width - this.xpos, this.height - this.ypos); }
+			ctx.drawImage(canvas, 0, 0, this.width + this.xpos, this.height + this.xpos, -this.xpos,
+						  -this.ypos, this.width + this.xpos, this.height + this.ypos); }
 		else if(this.xpos < 0) {
-			ctx.drawImage(canvas, 0, this.ypos, this.width - this.xpos, this.height, 0, 0, 
-						  this.width - this.xpos, this.height); }
+			ctx.drawImage(canvas, 0, this.ypos, this.width + this.xpos, this.height, -this.xpos, 0, 
+						  this.width + this.xpos, this.height); }
 		else if(this.ypos < 0) {
-			ctx.drawImage(canvas, this.xpos, 0, this.width, this.height - this.ypos, 0, 0,
-						  this.width, this.height - this.ypos); }
+			ctx.drawImage(canvas, this.xpos, 0, this.width, this.height + this.ypos, 0, -this.ypos,
+						  this.width, this.height + this.ypos); }
 		else {
 			ctx.drawImage(canvas, this.xpos, this.ypos, this.width, this.height, 0, 0,
 						  this.width, this.height); }
@@ -54,6 +64,8 @@ function Mouse(canvas) {
 	};
 	
 	this.update = function(x, y) {
+		this.real_x = x;
+		this.real_y = y;
 		this.xpos = (x - parseInt(this.width / 2)) - 2;
 		this.ypos = (y - parseInt(this.height / 2)) - 2;
 		this.view_invalid = true;
@@ -69,12 +81,17 @@ function GFXEngine() {
 		// block right click and remove mouse
 		this.canvas.oncontextmenu = function(e) { e.preventDefault(); return(false); }
 		//this.canvas.style.cursor = 'none';
+		// add mouse events
 		this.canvas.addEventListener('mousemove', this.mouseMove.bind(this), false);
+		this.canvas.addEventListener('mousedown', this.mouseClick.bind(this), false);
+		this.addWheelListener();
 		this.resizeCanvas();
-		window.addEventListener('resize', this.resizeCanvas, false);		
+		window.addEventListener('resize', this.resizeCanvas, false);	
 		this.mouse = new Mouse(this.canvas);
 		// set the clock
 		this.interval_id = setInterval(this.mainLoop.bind(this), MILLISECONDS_BETWEEN_FRAMES);
+		this.rect = new Rect(-2.0, 1.0, 1.0, -1.0);
+		this.busy = false;
 	};
 
 	this.mainLoop = function(event) {
@@ -82,9 +99,40 @@ function GFXEngine() {
 		this.mouse.draw(this.canvas, this.context);
 	};
 
+	this.addWheelListener = function() {
+		var wheel_event = (/Firefox/i.test(navigator.userAgent))? "DOMMouseScroll" : "mousewheel";
+		if(document.attachEvent) {
+			// if IE and maybe Opera
+			document.attachEvent('on' + wheel_event, this.mouseWheel.bind(this)); }
+		else if(document.addEventListener) {
+			// standard WC3
+			document.addEventListener(wheel_event, this.mouseWheel.bind(this), false);
+		}
+	};
+
 	this.mouseMove = function(event) {
 		var canvas_pos = this.canvas.getBoundingClientRect();
 		this.mouse.update(event.clientX - canvas_pos.left, event.clientY - canvas_pos.top);
+	};
+	
+	this.mouseClick = function(event) {
+		if(this.busy == true) {
+			return; }
+		this.busy = true;
+		// so really, we just want to zoom in for now, which is just a redraw
+		// where are we in the argand plane?
+		var scalex = (this.rect.x1 - this.rect.x0) / this.canvas.width;
+		var scaley = (this.rect.y0 - this.rect.y1) / this.canvas.height;
+		var delta_y = ((this.canvas.height / 2.0) - this.mouse.real_y) * scaley;
+		var delta_x = ((this.canvas.width / 2.0) - this.mouse.real_x) * scalex;
+		this.drawMandelbrot(this.rect.x0 - delta_x, this.rect.x1 - delta_x,
+							this.rect.y0 + delta_y, this.rect.y1 + delta_y);
+		this.busy = false;
+	};
+	
+	this.mouseWheel = function(event) {
+		var delta = event.detail? (event.detail * (-120)) : event.wheelDelta;
+		console.log(delta);
 	};
 
 	this.resizeCanvas = function() {
@@ -111,6 +159,7 @@ function GFXEngine() {
 		var xscale = Math.abs((x1 - x0) / this.width);
 		var yscale = Math.abs((y1 - y0) / this.height);
 		if(xscale < yscale) {
+		//if(true) {
 			// xscale is smaller, so has more room. True scale is now y
 			scale = ((y1 - y0) / this.height) * -1;
 			// resize x
@@ -122,10 +171,14 @@ function GFXEngine() {
 			// yscale is smaller, so has more room. True scale is now x
 			scale = (x1 - x0) / this.width;
 			// resize y
-			var extra_size = ((this.height * scale) - (y1 - y0)) / 2.0;
+			var extra_size = ((this.height * scale) - (y0 - y1)) / 2.0;
 			y0 -= extra_size;
 			y1 += extra_size;
 		}
+		
+		// store parameters for later
+		this.rect = new Rect(x0, x1, y0, y1);
+		
 		var xstart = x0;
 		for(var ypos=0; ypos<this.height; ypos++) {
 			for(var xpos=0; xpos<this.width; xpos++) {
