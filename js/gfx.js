@@ -3,12 +3,42 @@
 function Mouse(canvas) {
 	this.xpos = 0;
 	this.ypos = 0;
+	this.old_xpos = 0;
+	this.old_ypos = 0;
 	this.width = parseInt(canvas.width / 10);
 	this.height = parseInt(canvas.height / 10);
+	this.view_invalid = true;
+	this.canvas_buffer = document.createElement('canvas');
 	
-	this.draw = function(context) {
+	this.draw = function(canvas, context) {
+		// draw old image
+		this.restoreOldImage(canvas, context);
 		context.fillStype = 'black';
 		context.fillRect(this.xpos, this.ypos, this.width, this.height);
+	};
+
+	this.copyRegionToBuffer = function(canvas) {
+		this.canvas_buffer = document.createElement('canvas');
+		this.canvas_buffer.width = this.width;
+		this.canvas_buffer.height = this.height;
+		var ctx = this.canvas_buffer.getContext('2d');
+		ctx.drawImage(canvas, this.old_xpos, this.old_ypos, this.width, this.height, 0, 0, this.width, this.height);
+	};
+
+	this.restoreOldImage = function(canvas, context) {
+		if(this.view_invalid == false) {
+			return; }
+		context.drawImage(this.canvas_buffer, this.old_xpos, this.old_ypos);		
+		this.copyRegionToBuffer(canvas);
+		this.view_invalid = false;
+	};
+	
+	this.update = function(x, y) {
+		this.old_xpos = this.xpos;
+		this.old_ypos = this.ypos;
+		this.xpos = x - parseInt(this.width / 2);
+		this.ypos = y - parseInt(this.height / 2);
+		this.view_invalid = true;
 	};
 }
 
@@ -21,24 +51,22 @@ function GFXEngine() {
 		// block right click and remove mouse
 		this.canvas.oncontextmenu = function(e) { e.preventDefault(); return(false); }
 		//this.canvas.style.cursor = 'none';
-		this.canvas.addEventListener('onclick', this.mouseMove.bind(this), false);
+		this.canvas.addEventListener('mousemove', this.mouseMove.bind(this), false);
 		this.resizeCanvas();
 		window.addEventListener('resize', this.resizeCanvas, false);		
 		this.mouse = new Mouse(this.canvas);
 		// set the clock
-		this.interval_id = setInterval(this.mainLoop.bind(this), 2000);
+		this.interval_id = setInterval(this.mainLoop.bind(this), 20);
 	};
 
 	this.mainLoop = function(event) {
-		// draw the fractal
 		// draw the mouse
-		this.mouse.draw(this.context);
+		this.mouse.draw(this.canvas, this.context);
 	};
 
 	this.mouseMove = function(event) {
 		var canvas_pos = this.canvas.getBoundingClientRect();
-		var xpos = event.clientX - canvas_pos.left;
-		var ypos = event.clientY - canvas_pos.top;
+		this.mouse.update(event.clientX - canvas_pos.left, event.clientY - canvas_pos.top);
 	};
 
 	this.resizeCanvas = function() {
