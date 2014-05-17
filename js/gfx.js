@@ -127,13 +127,14 @@ function GFXEngine() {
 			return; }
 		this.busy = true;
 		// so really, we just want to zoom in for now, which is just a redraw
-		// where are we in the argand plane?
 		var scalex = (this.rect.x1 - this.rect.x0) / this.canvas.width;
 		var scaley = (this.rect.y0 - this.rect.y1) / this.canvas.height;
-		var delta_y = ((this.canvas.height / 2.0) - this.mouse.real_y) * scaley;
-		var delta_x = ((this.canvas.width / 2.0) - this.mouse.real_x) * scalex;
-		this.drawMandelbrot(this.rect.x0 - delta_x, this.rect.x1 - delta_x,
-							this.rect.y0 + delta_y, this.rect.y1 + delta_y);
+		var xdiff = (this.rect.x1 - this.rect.x0) / 20.0;
+		var ydiff = (this.rect.y0 - this.rect.y1) / 20.0;
+		// where did the mouse click?
+		var x = this.rect.x0 + (scalex * this.mouse.real_x);
+		var y = this.rect.y0 - (scaley * this.mouse.real_y);
+		this.drawMandelbrot(x - xdiff, x + xdiff, y + ydiff, y - ydiff);
 		this.mouse.reset(this.canvas, this.context);
 		this.busy = false;
 	};
