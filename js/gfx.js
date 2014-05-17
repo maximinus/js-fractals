@@ -70,6 +70,13 @@ function Mouse(canvas) {
 		this.ypos = (y - parseInt(this.height / 2)) - 2;
 		this.view_invalid = true;
 	};
+	
+	this.reset = function(canvas, context) {
+		// we are overlaying a new image. Keep the old x and y
+		this.copyRegionToBuffer(canvas);
+		this.drawRectangle(context);
+		this.view_invalid = false;
+	};
 }
 
 // code to handle all drawing to screen and animations
@@ -127,6 +134,7 @@ function GFXEngine() {
 		var delta_x = ((this.canvas.width / 2.0) - this.mouse.real_x) * scalex;
 		this.drawMandelbrot(this.rect.x0 - delta_x, this.rect.x1 - delta_x,
 							this.rect.y0 + delta_y, this.rect.y1 + delta_y);
+		this.mouse.reset(this.canvas, this.context);
 		this.busy = false;
 	};
 	
