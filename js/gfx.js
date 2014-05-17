@@ -7,14 +7,23 @@ function Mouse(canvas) {
 	this.old_ypos = 0;
 	this.width = parseInt(canvas.width / 10);
 	this.height = parseInt(canvas.height / 10);
-	this.view_invalid = true;
+	this.view_invalid = false;
 	this.canvas_buffer = document.createElement('canvas');
 	
 	this.draw = function(canvas, context) {
+		if(this.view_invalid == false) {
+			return; }
 		// draw old image
 		this.restoreOldImage(canvas, context);
-		context.fillStype = 'black';
-		context.fillRect(this.xpos, this.ypos, this.width, this.height);
+		this.copyRegionToBuffer(canvas);
+		this.drawRectangle(context);
+		this.view_invalid = false;
+	};
+	
+	this.drawRectangle = function(context) {
+		context.lineWidth = 1;
+		context.strokeStyle = 'black';
+		context.strokeRect(this.xpos + 1, this.ypos + 1, this.width - 2, this.height - 2);
 	};
 
 	this.copyRegionToBuffer = function(canvas) {
@@ -22,22 +31,31 @@ function Mouse(canvas) {
 		this.canvas_buffer.width = this.width;
 		this.canvas_buffer.height = this.height;
 		var ctx = this.canvas_buffer.getContext('2d');
-		ctx.drawImage(canvas, this.old_xpos, this.old_ypos, this.width, this.height, 0, 0, this.width, this.height);
+		// canvas does not handle negative xpos / ypos, so clip if needed
+		// 4 chances: x+y and -, x or y is -, or both positive
+		if((this.xpos < 0) && (this.ypos < 0)) {
+			ctx.drawImage(canvas, 0, 0, this.width + this.xpos, this.height + this.xpos, 0, 0, 
+						  this.width - this.xpos, this.height - this.ypos); }
+		else if(this.xpos < 0) {
+			ctx.drawImage(canvas, 0, this.ypos, this.width - this.xpos, this.height, 0, 0, 
+						  this.width - this.xpos, this.height); }
+		else if(this.ypos < 0) {
+			ctx.drawImage(canvas, this.xpos, 0, this.width, this.height - this.ypos, 0, 0,
+						  this.width, this.height - this.ypos); }
+		else {
+			ctx.drawImage(canvas, this.xpos, this.ypos, this.width, this.height, 0, 0,
+						  this.width, this.height); }
+		this.old_xpos = this.xpos;
+		this.old_ypos = this.ypos;
 	};
 
 	this.restoreOldImage = function(canvas, context) {
-		if(this.view_invalid == false) {
-			return; }
 		context.drawImage(this.canvas_buffer, this.old_xpos, this.old_ypos);		
-		this.copyRegionToBuffer(canvas);
-		this.view_invalid = false;
 	};
 	
 	this.update = function(x, y) {
-		this.old_xpos = this.xpos;
-		this.old_ypos = this.ypos;
-		this.xpos = x - parseInt(this.width / 2);
-		this.ypos = y - parseInt(this.height / 2);
+		this.xpos = (x - parseInt(this.width / 2)) - 2;
+		this.ypos = (y - parseInt(this.height / 2)) - 2;
 		this.view_invalid = true;
 	};
 }
@@ -56,7 +74,7 @@ function GFXEngine() {
 		window.addEventListener('resize', this.resizeCanvas, false);		
 		this.mouse = new Mouse(this.canvas);
 		// set the clock
-		this.interval_id = setInterval(this.mainLoop.bind(this), 20);
+		this.interval_id = setInterval(this.mainLoop.bind(this), MILLISECONDS_BETWEEN_FRAMES);
 	};
 
 	this.mainLoop = function(event) {
